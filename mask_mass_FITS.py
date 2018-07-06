@@ -28,11 +28,6 @@ def open_fits(fnm, ext=None, s=None, h_ext='SCI'):
     else:
         subarea = tmp[ext]
         ext_tmp = subarea[s[1] : s[3], s[0] : s[2]]
-        print 'total area: {0}'.format(tmp['MSK'][: , :].shape)
-        print 'area: {0}'.format([s[1] , s[3], s[0] , s[2]])
-        print tmp['MSK'][s[0] : s[2], s[1] : s[3]].ravel().mean()
-        print tmp['MSK'].read()[s[1] : s[3], s[0] : s[2]].mean()
-        print tmp['MSK'][s[1] : s[3], s[0] : s[2]].ravel()
     # Get the primary header, not restricted to the extension only
     header_tmp = copy.deepcopy(tmp[h_ext].read_header())
     return ext_tmp, header_tmp
@@ -124,10 +119,18 @@ def aux_main(tab, extension=None, section=None, outname=None):
             # will be saved
             # Go bit by bit, for each unique value of the array
             for b in list_bit:
-                tmp_arr = np.zeros_like(x)
-                tmp_arr[np.where(x == val)] = b
-                # Save th positions in the auxiliary array of layers
-                aux_layer[: , : , all_bits.index(b)] = tmp_arr
+                # Save the positions in the auxiliary array of layers
+                # Important: do not overwrite previous insertions
+                # Use the tuple of all sorted unique bits to get the index 
+                # of the ndimensional array 
+                pos2 = np.where(x == val)
+                idx_dim2 = np.ones( len(pos2[0]) ) * all_bits.index(b)
+                idx_dim2 = idx_dim2.astype(int)
+                idx_r2 = list(pos2)
+                # Add the third dimension by hand
+                idx_r2.append(idx_dim2)
+                idx_r2 = tuple(idx_r2)
+                aux_layer[idx_r2] = b
         # The 3D array containing one layer per bit is now filled. 
         # Statistics over each one of the layers to get the area and the
         # number of clusters
@@ -137,10 +140,6 @@ def aux_main(tab, extension=None, section=None, outname=None):
         for idxL in range(aux_layer.shape[2]):
             lab, n_labs = get_labels(aux_layer[: , : , idxL]) 
             areaL = np.flatnonzero(aux_layer[: , : , idxL]).size
-            print areaL, np.count_nonzero(aux_layer[: , : , idxL])
-            print np.count_nonzero(aux_layer[: , : , idxL].ravel())
-            print np.mean(aux_layer[: , : , idxL])
-            exit()
             tmp_bit.append(all_bits[idxL])
             tmp_nclust.append(n_labs)
             tmp_area.append(areaL)
@@ -189,7 +188,7 @@ if __name__ == '__main__':
     par = argparse.ArgumentParser(description=t_gral)
     h0 = 'Filename of the list of fullpaths to the FITS images'
     par.add_argument('fits', help=h0, metavar='filename')
-    aux_ext = 2
+    aux_ext = 'MSK'
     h1 = 'Data extension of the FITS file to be loaded.'
     h1 += ' Default: {0}'.format(aux_ext)
     par.add_argument('--ext', help=h1, metavar='string/integer', 
