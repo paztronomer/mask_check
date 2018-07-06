@@ -28,6 +28,11 @@ def open_fits(fnm, ext=None, s=None, h_ext='SCI'):
     else:
         subarea = tmp[ext]
         ext_tmp = subarea[s[1] : s[3], s[0] : s[2]]
+        print 'total area: {0}'.format(tmp['MSK'][: , :].shape)
+        print 'area: {0}'.format([s[1] , s[3], s[0] , s[2]])
+        print tmp['MSK'][s[0] : s[2], s[1] : s[3]].ravel().mean()
+        print tmp['MSK'].read()[s[1] : s[3], s[0] : s[2]].mean()
+        print tmp['MSK'][s[1] : s[3], s[0] : s[2]].ravel()
     # Get the primary header, not restricted to the extension only
     header_tmp = copy.deepcopy(tmp[h_ext].read_header())
     return ext_tmp, header_tmp
@@ -132,6 +137,10 @@ def aux_main(tab, extension=None, section=None, outname=None):
         for idxL in range(aux_layer.shape[2]):
             lab, n_labs = get_labels(aux_layer[: , : , idxL]) 
             areaL = np.flatnonzero(aux_layer[: , : , idxL]).size
+            print areaL, np.count_nonzero(aux_layer[: , : , idxL])
+            print np.count_nonzero(aux_layer[: , : , idxL].ravel())
+            print np.mean(aux_layer[: , : , idxL])
+            exit()
             tmp_bit.append(all_bits[idxL])
             tmp_nclust.append(n_labs)
             tmp_area.append(areaL)
@@ -165,8 +174,8 @@ def aux_main(tab, extension=None, section=None, outname=None):
     # Write out
     if (outname is None):
         aux_b = ''.join( list(set(kw['band'])) )
-        outname = 'maskStat_{0}_PID{1}.csv'.format(aux_b, os.getpid())
-    df_res.to_csv(outname, index=False, header=True)
+        outname = 'maskStat_{0}_PID{1}.pickle'.format(aux_b, os.getpid())
+    df_res.to_pickle(outname)
     print('Saved: {0}'.format(outname))
     return True
 
@@ -189,7 +198,7 @@ if __name__ == '__main__':
     h2 += ' Default is entire area'
     par.add_argument('--sec', help=h2, metavar='corners', nargs='+', type=int)
     h3 = 'Output filename.'
-    h3 += ' Default: maskStat_{bands}_PIDnnnn.csv'
+    h3 += ' Default: maskStat_{bands}_PIDnnnn.pickle'
     par.add_argument('--out', help=h3, metavar='filename')
     #
     par = par.parse_args()
